@@ -81,9 +81,11 @@ q = queue.Queue()
 
 
 def update_led_brightness(data):
-    sound_amplitude = max(data)
-    # TODO: linear transform it to [0.5 ~ 1], needs real experiment
-    print(sound_amplitude)  # TODO: actually set PWM on RPi output
+    sound_amplitude = max(max(data), abs(min(data)))
+    MIN_BRIGHTNESS = 0.5
+    MAX_BRIGHTNESS = 1
+    led_brightness = min(sound_amplitude + MIN_BRIGHTNESS, MAX_BRIGHTNESS)
+    print(led_brightness)  # TODO: actually set PWM on RPi output
 
 
 def audio_callback(indata, frames, time, status):
