@@ -1,12 +1,12 @@
 import argparse
 import queue
 import sys
-import math
 
 from matplotlib.animation import FuncAnimation
 import matplotlib.pyplot as plt
 import numpy as np
 import sounddevice as sd
+import pigpio
 
 
 def int_or_str(text):
@@ -79,13 +79,17 @@ if any(c < 1 for c in args.channels):
 mapping = [c - 1 for c in args.channels]  # Channel numbers start with 1
 q = queue.Queue()
 
+rpi = pigpio.pi()
+pwm_pin = 12
+rpi.set_PWM_range(pwm_pin, 100)
+
 
 def update_led_brightness(data):
     sound_amplitude = max(max(data), abs(min(data)))
     MIN_BRIGHTNESS = 0.5
     MAX_BRIGHTNESS = 1
-    led_brightness = min(sound_amplitude + MIN_BRIGHTNESS, MAX_BRIGHTNESS)
-    print(led_brightness)  # TODO: actually set PWM on RPi output
+    led_brightness = int(min(sound_amplitude + MIN_BRIGHTNESS, MAX_BRIGHTNESS) * 100)
+    rpi.set_PWM_dutycycle(pwm_pin, led_brightness)
 
 
 def audio_callback(indata, frames, time, status):
@@ -163,3 +167,5 @@ try:
         input()
 except Exception as e:
     parser.exit(type(e).__name__ + ": " + str(e))
+finally:
+    rpi.stop()
