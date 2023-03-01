@@ -2,12 +2,13 @@ import argparse
 import queue
 import sys
 
-from matplotlib.animation import FuncAnimation
-import matplotlib.pyplot as plt
+#from matplotlib.animation import FuncAnimation
+#import matplotlib.pyplot as plt
 import numpy as np
 import sounddevice as sd
 import pigpio
 
+print("imports done")
 
 def int_or_str(text):
     try:
@@ -78,26 +79,34 @@ if any(c < 1 for c in args.channels):
     parser.error("argument CHANNEL: must be >= 1")
 mapping = [c - 1 for c in args.channels]  # Channel numbers start with 1
 q = queue.Queue()
+previous_brightnesses = queue.Queue()
 
 rpi = pigpio.pi()
 pwm_pin = 12
 rpi.set_PWM_range(pwm_pin, 100)
+print("init done")
 
 
 def update_led_brightness(data):
     sound_amplitude = max(max(data), abs(min(data)))
-    MIN_BRIGHTNESS = 0.5
+    MIN_BRIGHTNESS = 0.3
     MAX_BRIGHTNESS = 1
-    led_brightness = int(min(sound_amplitude + MIN_BRIGHTNESS, MAX_BRIGHTNESS) * 100)
-    rpi.set_PWM_dutycycle(pwm_pin, led_brightness)
+    previous_brightness = previous_brightnesses.get()
+    led_brightness = round(int(min(sound_amplitude + MIN_BRIGHTNESS, MAX_BRIGHTNESS) * 100) / 10)* 10
+    for brightness in range(previous_brightness, led_brightness+1, 2):
+        rpi.set_PWM_dutycycle(pwm_pin, brightness)
+        print(brightness)
+    previous_brightnesses.put(led_brightness)
 
 
 def audio_callback(indata, frames, time, status):
     """This is called (from a separate thread) for each audio block."""
+    print("in callback")
     if status:
         print(status, file=sys.stderr)
     # Fancy indexing with mapping creates a (necessary!) copy:
     data = indata[:: args.downsample, mapping]
+    
     q.put(data)
     update_led_brightness(data)
 
@@ -134,6 +143,7 @@ try:
         samplerate=args.samplerate,
         callback=audio_callback,
     )
+    print("stream open")
 
     if args.graph:
         length = int(args.window * args.samplerate / (1000 * args.downsample))
