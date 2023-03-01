@@ -1,6 +1,7 @@
 import argparse
 import queue
 import sys
+import time
 
 from matplotlib.animation import FuncAnimation
 import matplotlib.pyplot as plt
@@ -83,8 +84,7 @@ rpi = pigpio.pi()
 pwm_pin = 12
 rpi.set_PWM_range(pwm_pin, 100)
 previous_brightness_q = queue.Queue()
-
-
+previous_brightness_q.put(int(0.5)*100)
 
 def update_led_brightness(data):
     sound_amplitude = max(max(data), abs(min(data)))
@@ -93,10 +93,10 @@ def update_led_brightness(data):
     previous_brightness = previous_brightness_q.get()
     led_brightness = int(min(sound_amplitude + MIN_BRIGHTNESS, MAX_BRIGHTNESS) * 100)
     previous_brightness_q.put(led_brightness)
-    step = 1 if led_brightness > previous_brightness else -1
-    for brightness in range(previous_brightness, led_brightness, step):
-        rpi.set_PWM_dutycycle(pwm_pin, brightness)
-        print(brightness)
+    for brightness in np.linspace(previous_brightness, led_brightness, 10):
+        rpi.set_PWM_dutycycle(pwm_pin, int(brightness))
+        time.sleep(0.001)
+    print(np.linspace(previous_brightness, led_brightness, 10))
 
 
 def audio_callback(indata, frames, time, status):
@@ -171,6 +171,7 @@ try:
             plt.show()
 
     with stream:
+        print("input")
         input()
 except Exception as e:
     parser.exit(type(e).__name__ + ": " + str(e))
