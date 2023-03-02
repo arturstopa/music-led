@@ -110,27 +110,6 @@ def audio_callback(indata, frames, time, status):
     update_led_brightness(data)
 
 
-def update_plot(frame):
-    """This is called by matplotlib for each plot update.
-
-    Typically, audio callbacks happen more frequently than plot updates,
-    therefore the queue tends to contain multiple blocks of audio data.
-
-    """
-    global plotdata
-    while True:
-        try:
-            data = q.get_nowait()
-        except queue.Empty:
-            break
-        shift = len(data)
-        plotdata = np.roll(plotdata, -shift, axis=0)
-        plotdata[-shift:, :] = data
-    for column, line in enumerate(lines):
-        line.set_ydata(plotdata[:, column])
-    return lines
-
-
 try:
     if args.samplerate is None:
         device_info = sd.query_devices(args.device, "input")
@@ -142,34 +121,6 @@ try:
         samplerate=args.samplerate,
         callback=audio_callback,
     )
-
-    if args.graph:
-        length = int(args.window * args.samplerate / (1000 * args.downsample))
-        plotdata = np.zeros((length, len(args.channels)))
-
-        fig, ax = plt.subplots()
-        lines = ax.plot(plotdata)
-        if len(args.channels) > 1:
-            ax.legend(
-                [f"channel {c}" for c in args.channels],
-                loc="lower left",
-                ncol=len(args.channels),
-            )
-        ax.axis((0, len(plotdata), -1, 1))
-        ax.set_yticks([0])
-        ax.yaxis.grid(True)
-        ax.tick_params(
-            bottom=False,
-            top=False,
-            labelbottom=False,
-            right=False,
-            left=False,
-            labelleft=False,
-        )
-        fig.tight_layout(pad=0)
-        ani = FuncAnimation(fig, update_plot, interval=args.interval, blit=True)
-        with stream:
-            plt.show()
 
     with stream:
         input()
