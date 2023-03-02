@@ -1,6 +1,10 @@
 import argparse
 import queue
 import sys
+<<<<<<< HEAD
+=======
+import time
+>>>>>>> tmp
 
 #from matplotlib.animation import FuncAnimation
 #import matplotlib.pyplot as plt
@@ -86,17 +90,24 @@ pwm_pin = 12
 rpi.set_PWM_range(pwm_pin, 100)
 print("init done")
 
+rpi = pigpio.pi()
+pwm_pin = 12
+rpi.set_PWM_range(pwm_pin, 100)
+previous_brightness_q = queue.Queue()
+previous_brightness_q.put(int(0.5) * 100)
+
 
 def update_led_brightness(data):
     sound_amplitude = max(max(data), abs(min(data)))
     MIN_BRIGHTNESS = 0.3
     MAX_BRIGHTNESS = 1
-    previous_brightness = previous_brightnesses.get()
-    led_brightness = round(int(min(sound_amplitude + MIN_BRIGHTNESS, MAX_BRIGHTNESS) * 100) / 10)* 10
-    for brightness in range(previous_brightness, led_brightness+1, 2):
-        rpi.set_PWM_dutycycle(pwm_pin, brightness)
-        print(brightness)
-    previous_brightnesses.put(led_brightness)
+    previous_brightness = previous_brightness_q.get()
+    led_brightness = int(min(sound_amplitude + MIN_BRIGHTNESS, MAX_BRIGHTNESS) * 100)
+    previous_brightness_q.put(led_brightness)
+    if abs(previous_brightness - led_brightness) > 2:
+        for brightness in np.linspace(previous_brightness, led_brightness, 20):
+            rpi.set_PWM_dutycycle(pwm_pin, int(brightness))
+            print(int(brightness))
 
 
 def audio_callback(indata, frames, time, status):
@@ -111,27 +122,6 @@ def audio_callback(indata, frames, time, status):
     update_led_brightness(data)
 
 
-def update_plot(frame):
-    """This is called by matplotlib for each plot update.
-
-    Typically, audio callbacks happen more frequently than plot updates,
-    therefore the queue tends to contain multiple blocks of audio data.
-
-    """
-    global plotdata
-    while True:
-        try:
-            data = q.get_nowait()
-        except queue.Empty:
-            break
-        shift = len(data)
-        plotdata = np.roll(plotdata, -shift, axis=0)
-        plotdata[-shift:, :] = data
-    for column, line in enumerate(lines):
-        line.set_ydata(plotdata[:, column])
-    return lines
-
-
 try:
     if args.samplerate is None:
         device_info = sd.query_devices(args.device, "input")
@@ -144,34 +134,6 @@ try:
         callback=audio_callback,
     )
     print("stream open")
-
-    if args.graph:
-        length = int(args.window * args.samplerate / (1000 * args.downsample))
-        plotdata = np.zeros((length, len(args.channels)))
-
-        fig, ax = plt.subplots()
-        lines = ax.plot(plotdata)
-        if len(args.channels) > 1:
-            ax.legend(
-                [f"channel {c}" for c in args.channels],
-                loc="lower left",
-                ncol=len(args.channels),
-            )
-        ax.axis((0, len(plotdata), -1, 1))
-        ax.set_yticks([0])
-        ax.yaxis.grid(True)
-        ax.tick_params(
-            bottom=False,
-            top=False,
-            labelbottom=False,
-            right=False,
-            left=False,
-            labelleft=False,
-        )
-        fig.tight_layout(pad=0)
-        ani = FuncAnimation(fig, update_plot, interval=args.interval, blit=True)
-        with stream:
-            plt.show()
 
     with stream:
         input()
