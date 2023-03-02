@@ -84,7 +84,8 @@ rpi = pigpio.pi()
 pwm_pin = 12
 rpi.set_PWM_range(pwm_pin, 100)
 previous_brightness_q = queue.Queue()
-previous_brightness_q.put(int(0.5)*100)
+previous_brightness_q.put(int(0.5) * 100)
+
 
 def update_led_brightness(data):
     sound_amplitude = max(max(data), abs(min(data)))
@@ -93,10 +94,10 @@ def update_led_brightness(data):
     previous_brightness = previous_brightness_q.get()
     led_brightness = int(min(sound_amplitude + MIN_BRIGHTNESS, MAX_BRIGHTNESS) * 100)
     previous_brightness_q.put(led_brightness)
-    for brightness in np.linspace(previous_brightness, led_brightness, 10):
-        rpi.set_PWM_dutycycle(pwm_pin, int(brightness))
-        time.sleep(0.001)
-    print(np.linspace(previous_brightness, led_brightness, 10))
+    if abs(previous_brightness - led_brightness) > 2:
+        for brightness in np.linspace(previous_brightness, led_brightness, 20):
+            rpi.set_PWM_dutycycle(pwm_pin, int(brightness))
+            print(int(brightness))
 
 
 def audio_callback(indata, frames, time, status):
@@ -171,7 +172,6 @@ try:
             plt.show()
 
     with stream:
-        print("input")
         input()
 except Exception as e:
     parser.exit(type(e).__name__ + ": " + str(e))
