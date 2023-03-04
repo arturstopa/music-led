@@ -41,21 +41,6 @@ parser.add_argument(
 parser.add_argument(
     "-d", "--device", type=int_or_str, help="input device (numeric ID or substring)"
 )
-parser.add_argument(
-    "-w",
-    "--window",
-    type=float,
-    default=200,
-    metavar="DURATION",
-    help="visible time slot (default: %(default)s ms)",
-)
-parser.add_argument(
-    "-i",
-    "--interval",
-    type=float,
-    default=30,
-    help="minimum time between plot updates (default: %(default)s ms)",
-)
 parser.add_argument("-b", "--blocksize", type=int, help="block size (in samples)")
 parser.add_argument(
     "-r", "--samplerate", type=float, help="sampling rate of audio device"
@@ -67,9 +52,6 @@ parser.add_argument(
     default=10,
     metavar="N",
     help="display every Nth sample (default: %(default)s)",
-)
-parser.add_argument(
-    "-g", "--graph", action="store_true", help="plot audio on a live graph"
 )
 args = parser.parse_args(remaining)
 if any(c < 1 for c in args.channels):
@@ -102,7 +84,6 @@ def audio_callback(indata, frames, time, status):
         print(status, file=sys.stderr)
     # Fancy indexing with mapping creates a (necessary!) copy:
     data = indata[:: args.downsample, mapping]
-    # q.put(data)
     update_led_brightness(data)
 
 
