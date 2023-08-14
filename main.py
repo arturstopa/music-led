@@ -1,18 +1,15 @@
 import argparse
 import queue
 import sys
-<<<<<<< HEAD
-=======
-import time
->>>>>>> tmp
 
-#from matplotlib.animation import FuncAnimation
-#import matplotlib.pyplot as plt
+# from matplotlib.animation import FuncAnimation
+# import matplotlib.pyplot as plt
 import numpy as np
 import sounddevice as sd
 import pigpio
 
 print("imports done")
+
 
 def int_or_str(text):
     try:
@@ -117,7 +114,7 @@ def audio_callback(indata, frames, time, status):
         print(status, file=sys.stderr)
     # Fancy indexing with mapping creates a (necessary!) copy:
     data = indata[:: args.downsample, mapping]
-    
+
     q.put(data)
     update_led_brightness(data)
 
